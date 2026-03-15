@@ -293,27 +293,44 @@ export function pasteRange(range: RangeComponent) {
     delimiter: "\t",
   });
 
+  const data = parsedText.data as string[][];
+
   if (parsedText.errors.length > 0) {
     const cell = range.getCells()[0][0];
     setCellValue(cell, text);
+    return;
+  }
+
+  if (data.length === 1 && data[0].length === 1) {
+    const singleValue = parsedText.data[0][0];
+    const selectedRows = range.getRows();
+    const selectedColumns = range.getColumns().filter(col => col.isVisible());
+    const selectedCells: CellComponent[][] = selectedRows.map(row =>
+      row.getCells().filter(cell => selectedColumns.includes(cell.getColumn()))
+    );
+    selectedCells.forEach((row) => {
+      row.forEach((selectedCells) => {
+        setCellValue(selectedCells, singleValue);
+      });
+    });
   } else {
     const table = range.getRows()[0].getTable();
     const rows = table.getRows("active").slice(range.getTopEdge());
     const columns = table
-      .getColumns(false)
-      .filter((col) => col.isVisible())
-      .slice(range.getLeftEdge());
+        .getColumns(false)
+        .filter((col) => col.isVisible())
+        .slice(range.getLeftEdge());
     const cells: CellComponent[][] = rows.map((row) => {
-      const arr = [];
-      row.getCells().forEach((cell) => {
-        if (columns.includes(cell.getColumn())) {
-          arr.push(cell);
+    const arr = [];
+    row.getCells().forEach((cell) => {
+      if (columns.includes(cell.getColumn())) {
+        arr.push(cell);
         }
       });
       return arr;
     });
 
-    parsedText.data.forEach((row: string[], rowIdx) => {
+    data.forEach((row: string[], rowIdx) => {
       row.forEach((text, colIdx) => {
         const cell = cells[rowIdx]?.[colIdx];
         if (!cell) return;
